@@ -39,7 +39,8 @@ jobs:
           echo "next_version=v1.0.0" >> $GITHUB_ENV
         else
           # Remove 'v' prefix and split into major, minor, patch
-          TAG="${{ env.tag#v }}"
+          TAG="${{ env.tag }}"
+          TAG=${TAG#v}  # Remove the 'v' prefix
           IFS='.' read -r major minor patch <<< "$TAG"
           patch=$((patch + 1))  # Increment patch version
           echo "next_version=v$major.$minor.$patch" >> $GITHUB_ENV
