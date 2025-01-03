@@ -26,15 +26,7 @@ jobs:
         pip install --no-cache-dir -r requirements.txt
         pip install pyinstaller
 
-    # Step 4: Debug repository structure
-    - name: Debug repository structure
-      run: |
-        echo "Current Working Directory:"
-        pwd
-        echo "Repository Structure:"
-        ls -R .
-
-    # Step 5: Build the executable
+    # Step 4: Build the executable
     - name: Build LeadgerDesktop executable
       id: build
       run: |
@@ -42,27 +34,33 @@ jobs:
         echo "timestamp=${TIMESTAMP}" >> $GITHUB_ENV
 
         EXECUTABLE_NAME="LeadgerDesktop.${TIMESTAMP}"
-        
         pyinstaller --onefile --name="${EXECUTABLE_NAME}" --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
 
         cp -r instance dist/instance
-        mv dist "LeadgerDesktop_${TIMESTAMP}" # Rename dist to package_timestamp
+        mv dist "LeadgerDesktop_${TIMESTAMP}"
 
-    # Step 6: Create a Git tag
+    # Step 5: Create and push a Git tag
     - name: Create and push a Git tag
       env:
         TIMESTAMP: ${{ env.timestamp }}
       run: |
         TAG_NAME="v${TIMESTAMP}"
+        echo "Creating Git tag: ${TAG_NAME}"
+        
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
         git tag "${TAG_NAME}"
         git push origin "${TAG_NAME}"
 
-    # Step 7: Create a GitHub release and upload the executable
+        # Verify tags on remote
+        echo "Remote tags after push:"
+        git ls-remote --tags origin
+
+    # Step 6: Create a GitHub release
     - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
@@ -70,7 +68,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    # Step 8: Clean up temporary files
+    # Step 7: Clean up temporary files
     - name: Clean up
       run: |
         rm -rf LeadgerDesktop_${{ env.timestamp }}
