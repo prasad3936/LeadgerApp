@@ -38,9 +38,9 @@ jobs:
     - name: Build LeadgerDesktop executable
       run: |
         pyinstaller --onefile --name=LeadgerDesktop.v2 --noconsole \
-        --add-data "LeadgerApp/templates:templates" \
-        --add-data "LeadgerApp/instance:instance" \
-        --icon=LeadgerApp/icon.ico LeadgerApp/app.py
+        --add-data "templates:templates" \
+        --add-data "instance:instance" \
+        --icon=LeadgerApp/icon.ico app.py
 
     # Step 6: List files in dist directory (optional)
     - name: List output files
