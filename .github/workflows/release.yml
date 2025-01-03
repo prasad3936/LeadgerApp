@@ -28,7 +28,7 @@ jobs:
     - name: Get the latest tag and compute next version
       id: version
       run: |
-        VERSION=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+        VERSION=$(git describe --tags --abbrev=0 || echo "v1.0.0")
         echo "Current version: $VERSION"
         
         # Extract MAJOR, MINOR, PATCH from the version (e.g., v1.2.3)
