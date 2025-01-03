@@ -8,62 +8,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Check out the repository
     - name: Check out repository
       uses: actions/checkout@v3
 
-    # Step 2: Set up Python environment
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
-    # Step 3: Install dependencies
     - name: Install dependencies
       run: |
         pip install --no-cache-dir -r requirements.txt
         pip install pyinstaller
 
-    # Step 4: Debug directory structure to confirm app.py exists
-    - name: Debug repository structure
-      run: |
-        echo "Current Working Directory:"
-        pwd
-        echo "Repository Structure:"
-        ls -R .
-
-    # Step 5: Build the executable
     - name: Build LeadgerDesktop executable
       run: |
-        EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
-        echo "Building executable with name: ${EXECUTABLE_NAME}"
+        EXECUTABLE_NAME="LeadgerDesktop.$(git rev-parse --short HEAD)"
         pyinstaller --onefile --name=${EXECUTABLE_NAME} --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
         cp -r instance dist/instance
-        mv dist "${EXECUTABLE_NAME}"  # Rename dist to package_timestamp
-        echo "Directory created: ${EXECUTABLE_NAME}"
+        mv dist "${EXECUTABLE_NAME}"
 
-    # Step 6: Compress the folder to .zip
     - name: Compress build folder into a .zip file
       run: |
-        EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
-        echo "Checking if folder exists: ${EXECUTABLE_NAME}"
-        if [ -d "${EXECUTABLE_NAME}" ]; then
-          echo "Zipping folder: ${EXECUTABLE_NAME}"
-          zip -r "${EXECUTABLE_NAME}.zip" "${EXECUTABLE_NAME}"
-        else
-          echo "Directory ${EXECUTABLE_NAME} does not exist! Skipping zip step."
-          exit 1
-        fi
-        
-    # Step 7: Create a release and upload the .zip file
+        EXECUTABLE_NAME="LeadgerDesktop.$(git rev-parse --short HEAD)"
+        zip -r "${EXECUTABLE_NAME}.zip" "${EXECUTABLE_NAME}"
+
     - name: Upload release asset
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
+        EXECUTABLE_NAME="LeadgerDesktop.$(git rev-parse --short HEAD)"
         curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
           -d '{"tag_name": "'${EXECUTABLE_NAME}'", "name": "'${EXECUTABLE_NAME}'", "body": "Automated release"}' \
           "https://api.github.com/repos/${{ github.repository }}/releases"
