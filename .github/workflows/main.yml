@@ -39,6 +39,7 @@ jobs:
         --add-data "templates:templates" \
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
+        cp -r instance dist/instance
         mv dist   LeadgerDesktop_$(date +'%Y%m%d%H%M%S') # Rename dist to package_timestamp
         
   
