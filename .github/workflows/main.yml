@@ -43,6 +43,13 @@ jobs:
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
         mv dist "${FOLDER_NAME}"  # Rename dist to package_timestamp
+        ls -R "${FOLDER_NAME}"  # Debug: List contents of the renamed folder
+
+    # Step 6: List files in the renamed package folder (optional)
+    - name: List output files
+      run: |
+        echo "Contents of ${FOLDER_NAME} directory:"
+        ls -R ${FOLDER_NAME}/
 
     # Optional Step 7: Push the executable back to the repository (if needed)
     - name: Commit and push executable
