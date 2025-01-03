@@ -1,4 +1,4 @@
-name: Release Workflow
+name: Build and Release LeadgerDesktop
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  release:
+  build-and-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,56 +14,63 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v3
 
-    # Step 2: Set up Git for tagging
-    - name: Configure Git
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    # Step 2: Set up Python environment
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
 
-    # Step 3: Get the latest tag
-    - name: Get latest tag
-      id: get_tag
+    # Step 3: Install dependencies
+    - name: Install dependencies
       run: |
-        TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
-        echo "Latest tag: $TAG"
-        echo "tag=$TAG" >> $GITHUB_ENV
+        pip install --no-cache-dir -r requirements.txt
+        pip install pyinstaller
 
-    # Step 4: Determine next version
-    - name: Calculate next version
-      id: next_version
+    # Step 4: Debug repository structure
+    - name: Debug repository structure
       run: |
-        if [ -z "$TAG" ]; then
-          # No tags yet, start at v1.0.0
-          echo "next_version=v1.0.0" >> $GITHUB_ENV
-        else
-          IFS='.' read -r major minor patch <<< "${TAG#v}"
-          patch=$((patch + 1)) # Increment PATCH version
-          echo "next_version=v$major.$minor.$patch" >> $GITHUB_ENV
-        fi
-      env:
-        TAG: ${{ env.tag }}
+        echo "Current Working Directory:"
+        pwd
+        echo "Repository Structure:"
+        ls -R .
 
-    # Step 5: Create and push a new tag
-    - name: Create and push tag
-      run: |
-        git tag -a ${{ env.next_version }} -m "Release ${{ env.next_version }}"
-        git push origin ${{ env.next_version }}
-
-    # Step 6: Build and package your application
+    # Step 5: Build the executable
     - name: Build LeadgerDesktop executable
+      id: build
       run: |
-        mkdir -p LeadgerDesktop_${{ env.next_version }}
-        pyinstaller --onefile --name=LeadgerDesktop --noconsole \
+        TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+        echo "timestamp=${TIMESTAMP}" >> $GITHUB_ENV
+
+        EXECUTABLE_NAME="LeadgerDesktop.${TIMESTAMP}"
+        
+        pyinstaller --onefile --name="${EXECUTABLE_NAME}" --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
-        cp -r instance dist/instance
-        mv dist/* LeadgerDesktop_${{ env.next_version }}
 
-    # Step 7: Create a release
-    - name: Create GitHub Release
+        cp -r instance dist/instance
+        mv dist "LeadgerDesktop_${TIMESTAMP}" # Rename dist to package_timestamp
+
+    # Step 6: Create a Git tag
+    - name: Create and push a Git tag
+      env:
+        TIMESTAMP: ${{ env.timestamp }}
+      run: |
+        TAG_NAME="v${TIMESTAMP}"
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git tag "${TAG_NAME}"
+        git push origin "${TAG_NAME}"
+
+    # Step 7: Create a GitHub release and upload the executable
+    - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
-        files: LeadgerDesktop_${{ env.next_version }}/*
+        files: LeadgerDesktop_${{ env.timestamp }}/*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # Step 8: Clean up temporary files
+    - name: Clean up
+      run: |
+        rm -rf LeadgerDesktop_${{ env.timestamp }}
