@@ -41,13 +41,13 @@ jobs:
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
         cp -r instance dist/instance
-        mv dist "LeadgerDesktop_${EXECUTABLE_NAME}"  # Rename dist to package_timestamp
+        mv dist "${EXECUTABLE_NAME}"  # Rename dist to package_timestamp
         
     # Step 6: Compress the folder to .zip
     - name: Compress build folder into a .zip file
       run: |
         EXECUTABLE_NAME=LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')
-        zip -r "LeadgerDesktop_${EXECUTABLE_NAME}.zip" "LeadgerDesktop_${EXECUTABLE_NAME}"
+        zip -r "${EXECUTABLE_NAME}.zip" "${EXECUTABLE_NAME}"
         
     # Step 7: Create a release and upload the .zip file
     - name: Upload release asset
