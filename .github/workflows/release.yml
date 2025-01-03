@@ -35,7 +35,7 @@ jobs:
     # Step 5: Build the executable
     - name: Build LeadgerDesktop executable
       run: |
-        EXECUTABLE_NAME=LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')
+        EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
         pyinstaller --onefile --name=${EXECUTABLE_NAME} --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
@@ -46,7 +46,8 @@ jobs:
     # Step 6: Compress the folder to .zip
     - name: Compress build folder into a .zip file
       run: |
-        EXECUTABLE_NAME=LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')
+        EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
+        echo "Zipping folder: ${EXECUTABLE_NAME}"
         zip -r "${EXECUTABLE_NAME}.zip" "${EXECUTABLE_NAME}"
         
     # Step 7: Create a release and upload the .zip file
@@ -54,7 +55,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        EXECUTABLE_NAME=LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')
+        EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
         curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
           -d '{"tag_name": "'${EXECUTABLE_NAME}'", "name": "'${EXECUTABLE_NAME}'", "body": "Automated release"}' \
           "https://api.github.com/repos/${{ github.repository }}/releases"
@@ -65,5 +66,5 @@ jobs:
 
         curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
           -H "Content-Type: application/zip" \
-          --data-binary @"LeadgerDesktop_${EXECUTABLE_NAME}.zip" \
-          "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=LeadgerDesktop_${EXECUTABLE_NAME}.zip"
+          --data-binary @"${EXECUTABLE_NAME}.zip" \
+          "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=${EXECUTABLE_NAME}.zip"
