@@ -1,4 +1,4 @@
-name: Release Workflow
+name: Build and Release
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,41 +14,35 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v3
 
-    # Step 2: Configure Git
-    - name: Configure Git
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    # Step 2: Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
-    # Step 3: Get the latest tag
-    - name: Get latest tag
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: |
+        pip install --no-cache-dir -r requirements.txt
+        pip install pyinstaller
+
+    # Step 4: Get the latest tag or create the first one
+    - name: Get latest tag or create v1.0.0
       id: get_tag
       run: |
         TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "")
         if [ -z "$TAG" ]; then
-          echo "tag=none" >> $GITHUB_ENV
-        else
-          echo "tag=$TAG" >> $GITHUB_ENV
-        fi
-
-    # Step 4: Calculate next version
-    - name: Calculate next version
-      id: calculate_version
-      run: |
-        if [ "${{ env.tag }}" = "none" ]; then
+          echo "Creating initial tag v1.0.0"
           echo "next_version=v1.0.0" >> $GITHUB_ENV
         else
-          # Remove 'v' prefix and split into major, minor, patch
-          TAG="${{ env.tag }}"
-          TAG=${TAG#v}  # Remove the 'v' prefix
+          echo "Found existing tag: $TAG"
+          TAG=${TAG#v}  # Remove 'v' prefix
           IFS='.' read -r major minor patch <<< "$TAG"
           patch=$((patch + 1))  # Increment patch version
           echo "next_version=v$major.$minor.$patch" >> $GITHUB_ENV
         fi
-      env:
-        tag: ${{ env.tag }}
 
-    # Step 5: Create and push the tag
+    # Step 5: Create a new tag
     - name: Create and push new tag
       run: |
         git tag -a ${{ env.next_version }} -m "Release ${{ env.next_version }}"
@@ -57,15 +51,14 @@ jobs:
     # Step 6: Build LeadgerDesktop executable
     - name: Build LeadgerDesktop executable
       run: |
-        mkdir -p LeadgerDesktop_${{ env.next_version }}
         pyinstaller --onefile --name=LeadgerDesktop --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
         cp -r instance dist/instance
-        mv dist/* LeadgerDesktop_${{ env.next_version }}
+        mv dist LeadgerDesktop_${{ env.next_version }}
 
-    # Step 7: Create GitHub release
+    # Step 7: Create a GitHub release
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
