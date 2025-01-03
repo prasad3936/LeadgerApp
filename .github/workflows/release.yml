@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Check out the repository.
+    # Step 1: Check out the repository
     - name: Check out repository
       uses: actions/checkout@v3
 
@@ -49,21 +49,24 @@ jobs:
         # Rename dist directory to include timestamp
         mv dist "LeadgerDesktop_${TIMESTAMP}" # Rename dist to package_timestamp
 
-    # Step 6: Create a Git tag
+    # Step 6: Create a unique Git tag
     - name: Create a Git tag
+      env:
+        TIMESTAMP: ${{ steps.build.outputs.timestamp }}
       run: |
-        git tag "v${TIMESTAMP}"
-        git push origin "v${TIMESTAMP}"
+        TAG_NAME="v$(date +'%Y%m%d%H%M%S')"
+        git tag "${TAG_NAME}"
+        git push origin "${TAG_NAME}"
 
     # Step 7: Create GitHub release and upload the executable
     - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
-        files: LeadgerDesktop_${TIMESTAMP}/*
+        files: LeadgerDesktop_${{ steps.build.outputs.timestamp }}/*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     # Optional: Clean up after release creation (if needed)
     - name: Clean up
       run: |
-        rm -rf LeadgerDesktop_${TIMESTAMP}
+        rm -rf LeadgerDesktop_${{ steps.build.outputs.timestamp }}
