@@ -33,31 +33,30 @@ jobs:
         ls -R .
 
     # Step 5: Build the executable
-- name: Build LeadgerDesktop executable
-  run: |
-    EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
-    echo "Building executable with name: ${EXECUTABLE_NAME}"
-    pyinstaller --onefile --name=${EXECUTABLE_NAME} --noconsole \
-    --add-data "templates:templates" \
-    --add-data "instance:instance" \
-    --icon=LeadgerApp/icon.ico app.py
-    cp -r instance dist/instance
-    mv dist "${EXECUTABLE_NAME}"  # Rename dist to package_timestamp
-    echo "Directory created: ${EXECUTABLE_NAME}"
+    - name: Build LeadgerDesktop executable
+      run: |
+        EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
+        echo "Building executable with name: ${EXECUTABLE_NAME}"
+        pyinstaller --onefile --name=${EXECUTABLE_NAME} --noconsole \
+        --add-data "templates:templates" \
+        --add-data "instance:instance" \
+        --icon=LeadgerApp/icon.ico app.py
+        cp -r instance dist/instance
+        mv dist "${EXECUTABLE_NAME}"  # Rename dist to package_timestamp
+        echo "Directory created: ${EXECUTABLE_NAME}"
 
-# Step 6: Compress the folder to .zip
-- name: Compress build folder into a .zip file
-  run: |
-    EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
-    echo "Checking if folder exists: ${EXECUTABLE_NAME}"
-    if [ -d "${EXECUTABLE_NAME}" ]; then
-      echo "Zipping folder: ${EXECUTABLE_NAME}"
-      zip -r "${EXECUTABLE_NAME}.zip" "${EXECUTABLE_NAME}"
-    else
-      echo "Directory ${EXECUTABLE_NAME} does not exist! Skipping zip step."
-      exit 1
-    fi
-
+    # Step 6: Compress the folder to .zip
+    - name: Compress build folder into a .zip file
+      run: |
+        EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
+        echo "Checking if folder exists: ${EXECUTABLE_NAME}"
+        if [ -d "${EXECUTABLE_NAME}" ]; then
+          echo "Zipping folder: ${EXECUTABLE_NAME}"
+          zip -r "${EXECUTABLE_NAME}.zip" "${EXECUTABLE_NAME}"
+        else
+          echo "Directory ${EXECUTABLE_NAME} does not exist! Skipping zip step."
+          exit 1
+        fi
         
     # Step 7: Create a release and upload the .zip file
     - name: Upload release asset
@@ -65,18 +64,14 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
-        echo "Creating release for ${EXECUTABLE_NAME}"
-        
-        # Create a release
-        RELEASE_RESPONSE=$(curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
+        curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
           -d '{"tag_name": "'${EXECUTABLE_NAME}'", "name": "'${EXECUTABLE_NAME}'", "body": "Automated release"}' \
-          "https://api.github.com/repos/${{ github.repository }}/releases")
-
-        # Extract release ID
-        RELEASE_ID=$(echo "$RELEASE_RESPONSE" | jq -r .id)
-
+          "https://api.github.com/repos/${{ github.repository }}/releases"
+        
         # Upload the .zip file as release asset
-        echo "Uploading ${EXECUTABLE_NAME}.zip to release"
+        RELEASE_ID=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/${EXECUTABLE_NAME}" | jq .id)
+
         curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
           -H "Content-Type: application/zip" \
           --data-binary @"${EXECUTABLE_NAME}.zip" \
