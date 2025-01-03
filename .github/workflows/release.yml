@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Check out the repositoryl
+    # Step 1: Check out the repository
     - name: Check out repository
       uses: actions/checkout@v3
 
@@ -36,8 +36,9 @@ jobs:
         cp -r instance dist/instance
         mv dist   LeadgerDesktop_$(date +'%Y%m%d%H%M%S') # Rename dist to package_timestamp
         
-    # Step 5: Create a tag (if not exists) and push it
+    # Step 5: Create and push tag
     - name: Create and push tag
+      id: create_tag
       run: |
         current_version=$(git describe --tags --abbrev=0 || echo "v0.0.0")
 
@@ -52,10 +53,13 @@ jobs:
         git tag $new_version
         git push origin $new_version
 
-    # Step 6: Upload release artifacts
+        echo "new_version=$new_version" >> $GITHUB_ENV
+
+    # Step 6: Upload release
     - name: Upload release
       uses: softprops/action-gh-release@v1
       with:
         files: LeadgerDesktop_*/**
-        tag_name: ${{ steps.create_and_push_tag.outputs.new_version }}  # Pass the created tag
+        tag_name: ${{ env.new_version }}  # Use the tag from the environment
         token: ${{ secrets.GITHUB_TOKEN }}
+
