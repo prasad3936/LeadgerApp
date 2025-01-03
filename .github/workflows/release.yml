@@ -1,12 +1,10 @@
-name: Build and Release LeadgerApp
-
 on:
   push:
     branches:
       - main
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -36,37 +34,30 @@ jobs:
 
     # Step 5: Build the executable
     - name: Build LeadgerDesktop executable
-      id: build
       run: |
         TIMESTAMP=$(date +'%Y%m%d%H%M%S')
-        echo "timestamp=$TIMESTAMP" >> $GITHUB_ENV
-        pyinstaller --onefile --name=LeadgerDesktop.$TIMESTAMP --noconsole \
+        EXECUTABLE_NAME="LeadgerDesktop.1.${TIMESTAMP}"
+        
+        pyinstaller --onefile --name="${EXECUTABLE_NAME}" --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
+
+        # Move instance directory to dist folder
         cp -r instance dist/instance
-        mv dist LeadgerDesktop_$TIMESTAMP
-        tar -czf LeadgerDesktop_$TIMESTAMP.tar.gz LeadgerDesktop_$TIMESTAMP
+        
+        # Rename dist directory to include timestamp
+        mv dist "LeadgerDesktop_${TIMESTAMP}" # Rename dist to package_timestamp
 
-    # Step 6: Create a new release
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
+    # Step 6: Create GitHub release and upload the executable
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: LeadgerDesktop_${TIMESTAMP}/*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: LeadgerDesktop_${{ env.timestamp }}
-        release_name: LeadgerDesktop_${{ env.timestamp }}
-        draft: false
-        prerelease: false
 
-    # Step 7: Upload Release Asset
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./LeadgerDesktop_${{ env.timestamp }}.tar.gz
-        asset_name: LeadgerDesktop_${{ env.timestamp }}.tar.gz
-        asset_content_type: application/gzip
+    # Optional: Clean up after release creation (if needed)
+    - name: Clean up
+      run: |
+        rm -rf LeadgerDesktop_${TIMESTAMP}
