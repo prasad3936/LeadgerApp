@@ -24,7 +24,7 @@ jobs:
     - name: Get latest tag
       id: get_tag
       run: |
-        TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
+        TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "")
         echo "Latest tag: $TAG"
         echo "tag=$TAG" >> $GITHUB_ENV
 
@@ -32,16 +32,16 @@ jobs:
     - name: Calculate next version
       id: next_version
       run: |
-        if [ -z "$TAG" ]; then
+        if [ -z "${{ env.tag }}" ]; then
           # No tags yet, start at v1.0.0
+          echo "Next version: v1.0.0"
           echo "next_version=v1.0.0" >> $GITHUB_ENV
         else
-          IFS='.' read -r major minor patch <<< "${TAG#v}"
+          IFS='.' read -r major minor patch <<< "${{ env.tag#v }}"
           patch=$((patch + 1)) # Increment PATCH version
+          echo "Next version: v$major.$minor.$patch"
           echo "next_version=v$major.$minor.$patch" >> $GITHUB_ENV
         fi
-      env:
-        TAG: ${{ env.tag }}
 
     # Step 5: Create and push a new tag
     - name: Create and push tag
