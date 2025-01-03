@@ -49,7 +49,13 @@ jobs:
         # Rename dist directory to include timestamp
         mv dist "LeadgerDesktop_${TIMESTAMP}" # Rename dist to package_timestamp
 
-    # Step 6: Create GitHub release and upload the executable
+    # Step 6: Create a Git tag
+    - name: Create a Git tag
+      run: |
+        git tag "v${TIMESTAMP}"
+        git push origin "v${TIMESTAMP}"
+
+    # Step 7: Create GitHub release and upload the executable
     - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
