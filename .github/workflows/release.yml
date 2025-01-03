@@ -1,5 +1,3 @@
-name: Build and Release
-
 on:
   push:
     branches:
@@ -26,40 +24,46 @@ jobs:
         pip install --no-cache-dir -r requirements.txt
         pip install pyinstaller
 
-    # Step 4: Build the executable
+    # Step 4: Debug directory structure to confirm app.py exists
+    - name: Debug repository structure
+      run: |
+        echo "Current Working Directory:"
+        pwd
+        echo "Repository Structure:"
+        ls -R .
+
+    # Step 5: Build the executable
     - name: Build LeadgerDesktop executable
       run: |
-        pyinstaller --onefile --name=LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S') --noconsole \
+        EXECUTABLE_NAME=LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')
+        pyinstaller --onefile --name=${EXECUTABLE_NAME} --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
         cp -r instance dist/instance
-        mv dist   LeadgerDesktop_$(date +'%Y%m%d%H%M%S') # Rename dist to package_timestamp
+        mv dist "LeadgerDesktop_${EXECUTABLE_NAME}"  # Rename dist to package_timestamp
         
-    # Step 5: Create and push tag
-    - name: Create and push tag
-      id: create_tag
+    # Step 6: Compress the folder to .zip
+    - name: Compress build folder into a .zip file
       run: |
-        current_version=$(git describe --tags --abbrev=0 || echo "v0.0.0")
-
-        if [ "$current_version" == "v0.0.0" ]; then
-          new_version="v1.0.0"
-        else
-          new_version=$(echo $current_version | awk -F. -v OFS=. '{$NF++;print}')
-        fi
-
-        echo "Creating new tag: $new_version"
+        EXECUTABLE_NAME=LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')
+        zip -r "LeadgerDesktop_${EXECUTABLE_NAME}.zip" "LeadgerDesktop_${EXECUTABLE_NAME}"
         
-        git tag $new_version
-        git push origin $new_version
+    # Step 7: Create a release and upload the .zip file
+    - name: Upload release asset
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        EXECUTABLE_NAME=LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')
+        curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
+          -d '{"tag_name": "'${EXECUTABLE_NAME}'", "name": "'${EXECUTABLE_NAME}'", "body": "Automated release"}' \
+          "https://api.github.com/repos/${{ github.repository }}/releases"
+        
+        # Upload the .zip file as release asset
+        RELEASE_ID=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/${EXECUTABLE_NAME}" | jq .id)
 
-        echo "new_version=$new_version" >> $GITHUB_ENV
-
-    # Step 6: Upload release
-    - name: Upload release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: LeadgerDesktop_*/**
-        tag_name: ${{ env.new_version }}  # Use the tag from the environment
-        token: ${{ secrets.GITHUB_TOKEN }}
-
+        curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Content-Type: application/zip" \
+          --data-binary @"LeadgerDesktop_${EXECUTABLE_NAME}.zip" \
+          "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=LeadgerDesktop_${EXECUTABLE_NAME}.zip"
