@@ -35,16 +35,12 @@ jobs:
     # Step 5: Build the executable
     - name: Build LeadgerDesktop executable
       run: |
-        TIMESTAMP=$(date +'%Y%m%d%H%M%S')  # Generate timestamp
-        FOLDER_NAME="package_${TIMESTAMP}"  # Folder name with timestamp
-        EXECUTABLE_NAME="LeadgerDesktop.${TIMESTAMP}.v2"  # Executable name with timestamp
-        pyinstaller --onefile --name=${EXECUTABLE_NAME} --noconsole \
+        pyinstaller --onefile --name=LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S') --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
-        mv dist "${FOLDER_NAME}"  # Rename dist to package_timestamp
-        ls -R "${FOLDER_NAME}"  # Debug: List contents of the renamed folder
-
+        mv dist   LeadgerDesktop_$(date +'%Y%m%d%H%M%S') # Rename dist to package_timestamp
+        
   
 
     # Optional Step 7: Push the executable back to the repository (if needed)
@@ -54,6 +50,6 @@ jobs:
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add ${FOLDER_NAME}/*
+        git add LeadgerDesktop_$(date +'%Y%m%d%H%M%S')/*
         git commit -m "Build and Package LeadgerApp: Added ${EXECUTABLE_NAME} executable"
         git push "https://${GITHUB_TOKEN}@github.com/prasad3936/LeadgerApp.git" HEAD:main
