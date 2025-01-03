@@ -1,0 +1,55 @@
+name: Build and Release LeadgerApp
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger workflow on version tags like v1.0.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir -r requirements.txt
+          pip install pyinstaller
+
+      # Step 4: Build the executable
+      - name: Build LeadgerDesktop executable
+        run: |
+          pyinstaller --onefile --name=LeadgerDesktop.v2 --noconsole \
+          --add-data "templates:templates" \
+          --add-data "instance:instance" \
+          --icon=LeadgerApp/icon.ico app.py
+
+      # Step 5: Copy the instance folder to the dist folder
+      - name: Copy instance folder to dist
+        run: |
+          cp -r instance dist/
+
+      # Step 6: Rename dist folder to package_timestamp
+      - name: Rename dist folder
+        run: |
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          mv dist "package_$TIMESTAMP"
+          echo "PACKAGE_FOLDER=package_$TIMESTAMP" >> $GITHUB_ENV
+
+      # Step 7: Upload to GitHub Releases
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.PACKAGE_FOLDER }}/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
