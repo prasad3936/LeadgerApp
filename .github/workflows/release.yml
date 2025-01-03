@@ -36,8 +36,10 @@ jobs:
 
     # Step 5: Build the executable
     - name: Build LeadgerDesktop executable
+      id: build
       run: |
         TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+        echo "timestamp=$TIMESTAMP" >> $GITHUB_ENV
         pyinstaller --onefile --name=LeadgerDesktop.$TIMESTAMP --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
@@ -52,8 +54,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: LeadgerDesktop_$(date +'%Y%m%d%H%M%S')
-        release_name: LeadgerDesktop_$(date +'%Y%m%d%H%M%S')
+        tag_name: LeadgerDesktop_${{ env.timestamp }}
+        release_name: LeadgerDesktop_${{ env.timestamp }}
         draft: false
         prerelease: false
 
@@ -63,6 +65,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create-release.outputs.upload_url }}
-        asset_path: ./LeadgerDesktop_$(date +'%Y%m%d%H%M%S').tar.gz
-        asset_name: LeadgerDesktop_$(date +'%Y%m%d%H%M%S').tar.gz
+        asset_path: ./LeadgerDesktop_${{ env.timestamp }}.tar.gz
+        asset_name: LeadgerDesktop_${{ env.timestamp }}.tar.gz
         asset_content_type: application/gzip
