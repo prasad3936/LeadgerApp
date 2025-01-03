@@ -48,8 +48,9 @@ jobs:
         mv dist LeadgerDesktop_$TIMESTAMP
         tar -czf LeadgerDesktop_$TIMESTAMP.tar.gz LeadgerDesktop_$TIMESTAMP
 
-    # Step 6: Create a new release and upload the package
+    # Step 6: Create a new release
     - name: Create GitHub Release
+      id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -59,12 +60,13 @@ jobs:
         draft: false
         prerelease: false
 
+    # Step 7: Upload Release Asset
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./LeadgerDesktop_${{ env.timestamp }}.tar.gz
         asset_name: LeadgerDesktop_${{ env.timestamp }}.tar.gz
         asset_content_type: application/gzip
