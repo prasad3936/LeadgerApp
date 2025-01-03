@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Legder - A Customer Management</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* Hide elements not needed in print view */
+      @media print {
+        .no-print {
+          display: none;
+        }
+      }
+      /* Copyright notice styling */
+      .copyright {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        font-size: 0.9rem;
+        color: #555;
+    </style>
+    <script>
+      function printPage() {
+        window.print();
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container mt-4">
+      <h1 class="text-center">Kiran Pharmaceuticals</h1>
+      <div class="d-flex justify-content-between mb-3 no-print">
+        <a href="/add" class="btn btn-primary">Add Customer</a>
+        <button class="btn btn-secondary" onclick="printPage()">Print</button>
+      </div>
+      <table class="table table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <!-- Serial number -->
+            <th>Name</th>
+            <th>Mobile</th>
+            <th>Amount</th>
+            <th>Products</th>
+            <th class="no-print">Actions</th>
+            <!-- Actions hidden in print view -->
+          </tr>
+        </thead>
+        <tbody>
+          {% for customer in customers %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ customer.name }}</td>
+            <td>{{ customer.mobile }}</td>
+            <td>${{ customer.amount }}</td>
+            <td>{{ customer.products }}</td>
+            <td class="no-print">
+              <a href="/edit/{{ customer.id }}" class="btn btn-sm btn-warning"
+                >Edit</a
+              >
+              <a href="/delete/{{ customer.id }}" class="btn btn-sm btn-danger"
+                >Delete</a
+              >
+              <a
+                href="/print_invoice/{{ customer.id }}"
+                class="btn btn-sm btn-danger"
+                >Invoice</a
+              >
+              <form
+                action="/transaction/{{ customer.id }}/credit"
+                method="POST"
+                style="display: inline-block"
+              >
+                <input
+                  type="number"
+                  name="amount"
+                  placeholder="Amount"
+                  class="form-control mb-1"
+                  required
+                />
+                <button type="submit" class="btn btn-success btn-sm">
+                  Credit
+                </button>
+              </form>
+              <form
+                action="/transaction/{{ customer.id }}/debit"
+                method="POST"
+                style="display: inline-block"
+              >
+                <input
+                  type="number"
+                  name="amount"
+                  placeholder="Amount"
+                  class="form-control mb-1"
+                  required
+                />
+                <button type="submit" class="btn btn-secondary btn-sm">
+                  Debit
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="text-right mt-3">
+        <h4>Total Amount: ${{ total_amount }}</h4>
+      </div>
+    </div>
+    <div class="copyright">
+      &copy; 2024 By Ledger For Kiran Pharmaceuticals. All rights reserved.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+Download and install MySQL Workbench
+
+CREATE DATABASE customer_db;
+
+CREATE USER 'username'@'localhost' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON customer_db.* TO 'username'@'localhost';
+FLUSH PRIVILEGES;
+
+python
+>>> from app import db
+>>> db.create_all()
+        OR
+python3 db.py
+
+python3 app.py
+
