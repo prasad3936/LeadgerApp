@@ -44,18 +44,26 @@ jobs:
         cp -r instance dist/instance
         mv dist LeadgerDesktop_$(date +'%Y%m%d%H%M%S') # Rename dist to package_timestamp
 
-    # Step 6: Tag the release version (e.g., v1.0.0 -> v1.0.1)
+       # Step 6: Tag the release version (e.g., v1.0.0 -> v1.0.1)
     - name: Create tag for release
       run: |
-        current_version=$(git describe --tags --abbrev=0)
-        if [ -z "$current_version" ]; then
+        # Check if there are any existing tags
+        current_version=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+
+        # If no tags exist, start with v1.0.0
+        if [ "$current_version" == "v0.0.0" ]; then
           new_version="v1.0.0"
         else
+          # Increment the version (patch version)
           new_version=$(echo $current_version | awk -F. -v OFS=. '{$NF++;print}')
         fi
+
         echo "Creating new tag: $new_version"
+        
+        # Create and push the new tag
         git tag $new_version
         git push origin $new_version
+
 
     # Step 7: Create a GitHub Release
     - name: Create GitHub Release
