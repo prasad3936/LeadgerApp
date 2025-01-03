@@ -1,0 +1,33 @@
+name: Build and Push Executable
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir -r requirements.txt
+          pip install pyinstaller
+      - name: Build executable
+        run: |
+          pyinstaller --onefile --name=LeadgerDesktop.v2 --noconsole \
+          --add-data "LeadgerApp/templates:templates" \
+          --add-data "LeadgerApp/instance:instance" \
+          --icon=LeadgerApp/icon.ico LeadgerApp/app.py
+      - name: Commit and push executable
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "<>"
+          git add dist/*
+          git commit -m "Add built executable"
+          git push
