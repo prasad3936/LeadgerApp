@@ -36,6 +36,7 @@ jobs:
     - name: Build LeadgerDesktop executable
       run: |
         EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
+        echo "Building executable with name: ${EXECUTABLE_NAME}"
         pyinstaller --onefile --name=${EXECUTABLE_NAME} --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
@@ -56,14 +57,18 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         EXECUTABLE_NAME="LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S')"
-        curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
-          -d '{"tag_name": "'${EXECUTABLE_NAME}'", "name": "'${EXECUTABLE_NAME}'", "body": "Automated release"}' \
-          "https://api.github.com/repos/${{ github.repository }}/releases"
+        echo "Creating release for ${EXECUTABLE_NAME}"
         
-        # Upload the .zip file as release asset
-        RELEASE_ID=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-          "https://api.github.com/repos/${{ github.repository }}/releases/tags/${EXECUTABLE_NAME}" | jq .id)
+        # Create a release
+        RELEASE_RESPONSE=$(curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
+          -d '{"tag_name": "'${EXECUTABLE_NAME}'", "name": "'${EXECUTABLE_NAME}'", "body": "Automated release"}' \
+          "https://api.github.com/repos/${{ github.repository }}/releases")
 
+        # Extract release ID
+        RELEASE_ID=$(echo "$RELEASE_RESPONSE" | jq -r .id)
+
+        # Upload the .zip file as release asset
+        echo "Uploading ${EXECUTABLE_NAME}.zip to release"
         curl -XPOST -H "Authorization: token $GITHUB_TOKEN" \
           -H "Content-Type: application/zip" \
           --data-binary @"${EXECUTABLE_NAME}.zip" \
