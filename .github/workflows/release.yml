@@ -15,10 +15,10 @@ jobs:
       uses: actions/checkout@v3
 
     # Step 2: Set up Python environment
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
 
     # Step 3: Install dependencies
     - name: Install dependencies
@@ -26,42 +26,51 @@ jobs:
         pip install --no-cache-dir -r requirements.txt
         pip install pyinstaller
 
-    # Step 4: Get the latest tag or create the first one
-    - name: Get latest tag or create v1.0.0
-      id: get_tag
+    # Step 4: Debug directory structure to confirm app.py exists
+    - name: Debug repository structure
       run: |
-        TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "")
-        if [ -z "$TAG" ]; then
-          echo "Creating initial tag v1.0.0"
-          echo "next_version=v1.0.0" >> $GITHUB_ENV
-        else
-          echo "Found existing tag: $TAG"
-          TAG=${TAG#v}  # Remove 'v' prefix
-          IFS='.' read -r major minor patch <<< "$TAG"
-          patch=$((patch + 1))  # Increment patch version
-          echo "next_version=v$major.$minor.$patch" >> $GITHUB_ENV
-        fi
+        echo "Current Working Directory:"
+        pwd
+        echo "Repository Structure:"
+        ls -R .
 
-    # Step 5: Create a new tag
-    - name: Create and push new tag
-      run: |
-        git tag -a ${{ env.next_version }} -m "Release ${{ env.next_version }}"
-        git push origin ${{ env.next_version }}
-
-    # Step 6: Build LeadgerDesktop executable
+    # Step 5: Build the executable
     - name: Build LeadgerDesktop executable
       run: |
-        pyinstaller --onefile --name=LeadgerDesktop --noconsole \
+        pyinstaller --onefile --name=LeadgerDesktop.1.$(date +'%Y%m%d%H%M%S') --noconsole \
         --add-data "templates:templates" \
         --add-data "instance:instance" \
         --icon=LeadgerApp/icon.ico app.py
         cp -r instance dist/instance
-        mv dist LeadgerDesktop_${{ env.next_version }}
+        mv dist LeadgerDesktop_$(date +'%Y%m%d%H%M%S') # Rename dist to package_timestamp
 
-    # Step 7: Create a GitHub release
+    # Step 6: Tag the release version (e.g., v1.0.0 -> v1.0.1)
+    - name: Create tag for release
+      run: |
+        current_version=$(git describe --tags --abbrev=0)
+        if [ -z "$current_version" ]; then
+          new_version="v1.0.0"
+        else
+          new_version=$(echo $current_version | awk -F. -v OFS=. '{$NF++;print}')
+        fi
+        echo "Creating new tag: $new_version"
+        git tag $new_version
+        git push origin $new_version
+
+    # Step 7: Create a GitHub Release
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        files: LeadgerDesktop_${{ env.next_version }}/*
+        files: LeadgerDesktop_*/**
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    # Optional Step 8: Commit and push executable back to the repository (if needed)
+    - name: Commit and push executable
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add LeadgerDesktop_$(date +'%Y%m%d%H%M%S')/*
+        git commit -m "Build and Package LeadgerApp: Added ${EXECUTABLE_NAME} executable"
+        git push "https://${GITHUB_TOKEN}@github.com/prasad3936/LeadgerApp.git" HEAD:main
