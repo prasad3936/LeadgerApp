@@ -14,7 +14,7 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v3
 
-    # Step 2: Set up Git for tagging
+    # Step 2: Configure Git
     - name: Configure Git
       run: |
         git config --global user.name "github-actions[bot]"
@@ -25,30 +25,35 @@ jobs:
       id: get_tag
       run: |
         TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "")
-        echo "tag=$TAG" >> $GITHUB_ENV
+        if [ -z "$TAG" ]; then
+          echo "tag=none" >> $GITHUB_ENV
+        else
+          echo "tag=$TAG" >> $GITHUB_ENV
+        fi
 
-    # Step 4: Determine next version
+    # Step 4: Calculate next version
     - name: Calculate next version
-      id: next_version
+      id: calculate_version
       run: |
-        if [ -z "${{ env.tag }}" ]; then
-          # No tags yet, start at v1.0.0
+        if [ "${{ env.tag }}" = "none" ]; then
           echo "next_version=v1.0.0" >> $GITHUB_ENV
         else
           # Remove 'v' prefix and split into major, minor, patch
           TAG="${{ env.tag#v }}"
           IFS='.' read -r major minor patch <<< "$TAG"
-          patch=$((patch + 1)) # Increment PATCH version
+          patch=$((patch + 1))
           echo "next_version=v$major.$minor.$patch" >> $GITHUB_ENV
         fi
+      env:
+        tag: ${{ env.tag }}
 
-    # Step 5: Create and push a new tag
-    - name: Create and push tag
+    # Step 5: Create and push the tag
+    - name: Create and push new tag
       run: |
         git tag -a ${{ env.next_version }} -m "Release ${{ env.next_version }}"
         git push origin ${{ env.next_version }}
 
-    # Step 6: Build and package your application
+    # Step 6: Build LeadgerDesktop executable
     - name: Build LeadgerDesktop executable
       run: |
         mkdir -p LeadgerDesktop_${{ env.next_version }}
@@ -59,7 +64,7 @@ jobs:
         cp -r instance dist/instance
         mv dist/* LeadgerDesktop_${{ env.next_version }}
 
-    # Step 7: Create a release
+    # Step 7: Create GitHub release
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
